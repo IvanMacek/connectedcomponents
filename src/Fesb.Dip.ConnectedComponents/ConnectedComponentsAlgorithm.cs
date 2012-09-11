@@ -10,18 +10,16 @@ namespace Fesb.Dip.ConnectedComponents
 {
     public partial class ConnectedComponentsAlgorithm
     {
-        public ApplyResult Apply(Bitmap bitmap)
+        public ApplyResult Apply(Bitmap bitmap, byte? backgroundTreshold = null)
         {
             var bitmapData = GetRawData(bitmap);
             var labelData = new byte[bitmapData.Length];
 
-            var blobCount = _floodFillAlgorithm.Fill(bitmapData, bitmap.Size, labelData);
+            var blobCount = _floodFillAlgorithm.Fill(bitmapData, bitmap.Size, backgroundTreshold, labelData);
 
             var labeledImage = new Bitmap(bitmap.Size.Width, bitmap.Size.Height, PixelFormat.Format8bppIndexed);
-            labeledImage.Palette = _AdjustColorPallete(labeledImage.Palette);
+            labeledImage.Palette = _AdjustColorPallete(labeledImage.Palette, backgroundTreshold);
             SetRawData(labeledImage, labelData);
-
-            new ContrastStretch().ApplyInPlace(labeledImage);
 
             return new ApplyResult { Bitmap = labeledImage, BlobCount = blobCount };
         }
@@ -58,9 +56,14 @@ namespace Fesb.Dip.ConnectedComponents
             bitmap.UnlockBits(bmpData);
         }
 
-        private ColorPalette _AdjustColorPallete(ColorPalette palette)
+        private ColorPalette _AdjustColorPallete(ColorPalette palette, byte? backgroundTreshold)
         {
-            for (var i = 0; i < palette.Entries.Length; i++)
+            for (var i = 0; i <= (backgroundTreshold ?? -1); i++)
+            {
+                palette.Entries[i] = Color.Black;
+            }
+
+            for (var i = (backgroundTreshold ?? -1) + 1; i < palette.Entries.Length; i++)
             {
                 palette.Entries[i] = _colorTable[i % _colorTable.Length];
             }
@@ -88,8 +91,6 @@ namespace Fesb.Dip.ConnectedComponents
 
             _colorTable = new[]
             {
-                Color.Black,
-                
                 Color.Red,		Color.Green,	Color.Blue,			Color.Yellow,
                 Color.Violet,	Color.Brown,	Color.Olive,		Color.Cyan,
 

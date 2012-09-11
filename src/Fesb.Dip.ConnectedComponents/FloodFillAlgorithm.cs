@@ -7,7 +7,7 @@ namespace Fesb.Dip.ConnectedComponents
 {
     public partial class FloodFillAlgorithm
     {
-        public int Fill(byte[] imageData, Size imageSize, byte[] labelData)
+        public int Fill(byte[] imageData, Size imageSize, byte? backgroundTreshold, byte[] labelData)
         {
             var blobsCount = 0;
 
@@ -15,12 +15,16 @@ namespace Fesb.Dip.ConnectedComponents
                 for (var x = 0; x < imageSize.Width; x++)
                 {
                     var currentPoint = new Point(x, y);
-                    if (_GetPixel(currentPoint, labelData, imageSize) == 0)
-                    {
-                        ++blobsCount;
-                        var label = (byte)Math.Max(1, blobsCount % 255);
-                        FillFrom(currentPoint, label, imageData, imageSize, labelData);
-                    }
+                    
+                    var currentValue = _GetPixel(currentPoint, imageData, imageSize);
+                    if (backgroundTreshold.HasValue && currentValue <= backgroundTreshold) { continue; }
+
+                    var currentLabel = _GetPixel(currentPoint, labelData, imageSize);
+                    if (currentLabel != 0) { continue; }
+
+                    ++blobsCount;
+                    var label = (byte)Math.Max(1, blobsCount % byte.MaxValue);
+                    FillFrom(currentPoint, label, imageData, imageSize, labelData);
                 }
 
             return blobsCount;
@@ -28,30 +32,29 @@ namespace Fesb.Dip.ConnectedComponents
 
         public void FillFrom(Point currentPoint, byte label, byte[] imageData, Size imageSize, byte[] labelData)
         {
-            _nextPointsQueue = new Queue<Point>();
-            _nextPointsQueue.Enqueue(currentPoint);
+            var nextPointsQueue = new Queue<Point>();
+            nextPointsQueue.Enqueue(currentPoint);
 
-            while (_nextPointsQueue.Any())
+            while (nextPointsQueue.Any())
             {
-                currentPoint = _nextPointsQueue.Dequeue();
+                currentPoint = nextPointsQueue.Dequeue();
+
                 var currentLabel = _GetPixel(currentPoint, labelData, imageSize);
+                if (currentLabel != 0) { continue; }
 
-                if (currentLabel == 0)
-                {
-                    _SetPixel(currentPoint, label, labelData, imageSize);
+                _SetPixel(currentPoint, label, labelData, imageSize);
 
-                    var currentValue = _GetPixel(currentPoint, imageData, imageSize);
+                var currentValue = _GetPixel(currentPoint, imageData, imageSize);
 
-                    var sameValueNeighborPoints =
-                        _testPoints
-                            .Select(tp => new Point(currentPoint.X + tp.X, currentPoint.Y + tp.Y))
-                            .Where(p => _GetPixel(p, imageData, imageSize) != null) // Izbaci susjede van slike
-                            .Where(p => _GetPixel(p, imageData, imageSize) == currentValue) // Izbaci elemente koji nisu iste boje kao trenutni
-                            .Where(p => _GetPixel(p, labelData, imageSize) == 0) // Izbaci elemente koji vec imaju labelu
-                            .ToList();
+                var sameValueNeighborPoints =
+                    _testPoints
+                        .Select(tp => new Point(currentPoint.X + tp.X, currentPoint.Y + tp.Y))
+                        .Where(p => _GetPixel(p, imageData, imageSize) != null) // Izbaci susjede van slike
+                        .Where(p => _GetPixel(p, imageData, imageSize) == currentValue) // Izbaci elemente koji nisu iste boje kao trenutni
+                        .Where(p => _GetPixel(p, labelData, imageSize) == 0) // Izbaci elemente koji vec imaju labelu
+                        .ToList();
 
-                    sameValueNeighborPoints.ForEach(p => _nextPointsQueue.Enqueue(p));
-                }
+                sameValueNeighborPoints.ForEach(nextPointsQueue.Enqueue);
             }
         }
     }
@@ -68,16 +71,12 @@ namespace Fesb.Dip.ConnectedComponents
 
         private static void _SetPixel(Point p, byte value, byte[] data, Size imageSize)
         {
-            //if (p.X < 0 || imageSize.Width <= p.X) { return; }
-            //if (p.Y < 0 || imageSize.Height <= p.Y) { return; }
-
             data[p.Y * imageSize.Width + p.X] = value;
         }
     }
 
     public partial class FloodFillAlgorithm
     {
-        private Queue<Point> _nextPointsQueue;
         private readonly Point[] _testPoints;
 
         public FloodFillAlgorithm(Point[] testPoints)
