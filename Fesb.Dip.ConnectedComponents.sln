@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio 2010
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fesb.Dip.ConnectedComponents", "Fesb.Dip.ConnectedComponents\Fesb.Dip.ConnectedComponents.csproj", "{B05488A8-70DB-4E1E-899A-0CB2000A5008}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fesb.Dip.ConnectedComponents", "src\Fesb.Dip.ConnectedComponents\Fesb.Dip.ConnectedComponents.csproj", "{B05488A8-70DB-4E1E-899A-0CB2000A5008}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
